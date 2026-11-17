@@ -6,26 +6,18 @@ on:
       - main
     paths:
       - "hashnode/**/*.md"
-      - "scripts/publish_hashnode.py"
   workflow_dispatch:
 
 jobs:
-  sync:
+  publish:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Publish to Hashnode
+        uses: james-wallis/hashnode-github-action@v2
         with:
-          python-version: "3.11"
-
-      - name: Install dependencies
-        run: pip install pyyaml requests
-
-      - name: Run Hashnode sync script
-        env:
-          HASHNODE_TOKEN: ${{ secrets.HASHNODE_TOKEN }}
-          HASHNODE_PUBLICATION_ID: ${{ secrets.HASHNODE_PUBLICATION_ID }}
-        run: python scripts/publish_hashnode.py
+          hashnode_token: ${{ secrets.HASHNODE_TOKEN }}
+          publication_id: ${{ secrets.HASHNODE_PUBLICATION_ID }}
+          articles_directory: hashnode
