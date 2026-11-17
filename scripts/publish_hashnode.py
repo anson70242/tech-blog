@@ -6,17 +6,18 @@ import requests
 import yaml
 
 HASHNODE_API = "https://gql.hashnode.com"
-TOKEN = os.environ.get("HASHNODE_TOKEN")
-PUB_ID = os.environ.get("HASHNODE_PUBLICATION_ID")
+TOKEN = os.environ.get("HASHNODE_TOKEN", "").strip()
+PUB_ID = os.environ.get("HASHNODE_PUBLICATION_ID", "").strip()
 
 if not TOKEN or not PUB_ID:
     print("Error: HASHNODE_TOKEN or HASHNODE_PUBLICATION_ID is missing.")
     sys.exit(1)
 
-# Hashnode Personal Access Token 直接放在 Authorization 头中，不加 Bearer 前缀
 HEADERS = {
     "Authorization": TOKEN,
     "Content-Type": "application/json",
+    "Accept": "application/json",
+    "User-Agent": "Mozilla/5.0 (compatible; HashnodeSync/1.0)",
 }
 
 
@@ -27,12 +28,20 @@ def gql_request(query: str, variables: dict) -> dict:
         headers=HEADERS,
         timeout=30,
     )
-    resp.raise_for_status()
-    data = resp.json()
+    if not resp.ok or not resp.text.strip():
+        raise RuntimeError(
+            f"HTTP {resp.status_code} | Empty or error response: {resp.text[:500]}"
+        )
+    try:
+        data = resp.json()
+    except ValueError as exc:
+        raise RuntimeError(
+            f"Invalid JSON (HTTP {resp.status_code}): {resp.text[:500]}"
+        ) from exc
+
     if "errors" in data:
         raise RuntimeError(f"GraphQL Error: {data['errors']}")
     return data["data"]
-
 
 def get_existing_posts() -> dict:
     """获取当前博客已发布的文章列表，返回 {slug: post_id} 映射"""
